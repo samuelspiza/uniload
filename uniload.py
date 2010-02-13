@@ -2,6 +2,8 @@
 
 import urllib2, os, re, ConfigParser, sys
 
+CONFFILE = os.path.expanduser("~/.uniload.conf")
+
 def uniload():
     config = getConfig()
     os.chdir(os.path.expanduser(config.get("uniload", "path")))
@@ -9,9 +11,8 @@ def uniload():
         load(config, section)
 
 def getConfig():
-    conffile = os.path.expanduser("~/.uniload.conf")
     config = ConfigParser.ConfigParser()
-    succed = config.read([conffile])
+    succed = config.read([CONFFILE])
     ok = getConfigSites(config, succed)
     ok = getConfigPath(config, succed) and ok
     if not ok:
@@ -27,9 +28,9 @@ def getConfigSites(config, succed):
             if section.startswith("uniload-site ") and section != 'uniload-site "Example"':
                 return True
     config.add_section('uniload-site "Example"')
-    config.set('uniload-site "Example"', "path", "http://www.example.com/")
     config.set('uniload-site "Example"', "page", "http://www.example.com/site.htm")
-    config.set('uniload-site "Example"', "example/exercise", r"exercise/exercise_[0-9]{2}\.pdf")
+    config.set('uniload-site "Example"', "00regexp", r"exercise/exercise_[0-9]{2}\.pdf")
+    config.set('uniload-site "Example"', "00folder", "uebung")
     return False
 
 def getConfigPath(config, succed):
@@ -40,29 +41,48 @@ def getConfigPath(config, succed):
     return False
 
 def load(config, section):
-    content = urllib2.urlopen(config.get(section, "page")).read()
-    for item in [i for i in config.items(section) if i[0] != "page" and i[0] != "path"]:
-        loaditem(item, config.get(section, "path"), content)
+    module = section[14:-1]
+    page = config.get(section, "page")
+    content = urllib2.urlopen(page).read()
+    for item in getIndexedOptions(config, section, ["regexp", "folder"]):
+        localdir = os.path.join(module, item['folder'])
+        loaditem(localdir, os.path.dirname(page), item['regexp'], content)
 
-def loaditem(item, path, content):
-    folder = item[0]
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-    files = [File(f, path, folder) for f in re.findall(item[1], content)]
-    print [f.__str__() for f in files]
-    for f in files:
-        if f.isNew() or f.hasChanged():
-            f.download()
+def loaditem(localdir, webdir, regexp, content):
+    # files = [File(f, webdir, localdir).update(test=False) for f in re.findall(regexp, content)]
+    files = [File(f, webdir, localdir).update(test=True) for f in re.findall(regexp, content)]
+
+def getIndexedOptions(config, section, values):
+    arr = []
+    i = 0
+    temp = getOptionsById(config, section, values, i)
+    while 0 < len(temp):
+        arr.append(temp)
+        i = i + 1
+        temp = getOptionsById(config, section, values, i)
+    return arr
+
+def getOptionsById(config, section, values, i):
+    values = [v.format(i) for v in ["{0:02}" + v for v in values]]
+    return dict([(v[2:], config.get(section, v))
+                 for v in values if config.has_option(section, v)])
 
 class File:
     def __init__(self, name, webdir, localdir):
         self.name = os.path.basename(name)
-        self.web = webdir + name
+        self.web = os.path.join(webdir, name)
         self.local = os.path.join(localdir,self.name)
         self.oldlen = None
         self.newlen = None
         self.newcontent = None
         self.response = None
+
+    def update(self, test=False):
+        if self.check():
+            self.download(test)
+    
+    def check(self):
+        return self.isNew() or self.hasChanged()
 
     def isNew(self):
         return not os.path.exists(self.local)
@@ -102,13 +122,20 @@ class File:
             self.response = getResponse(self.web, None)
         return self.response
       
-    def download(self):
+    def download(self, test=False):
         newcontent = self.getNewContent()
         if newcontent is not None:
-            file = open(self.local, "w")
-            file.write(newcontent)
-            file.close()
-
+            localdir = os.path.dirname(self.local)
+            if not os.path.exists(localdir):
+                if not test:
+                    os.makedirs(localdir)
+                print "makedirs: " + localdir
+            if not test:
+                file = open(self.local, "w")
+                file.write(newcontent)
+                file.close()
+            print "write: " + self.local
+            
     def __str__(self):
         return self.name
 
