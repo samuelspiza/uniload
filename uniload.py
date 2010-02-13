@@ -28,9 +28,9 @@ def getConfigSites(config, succed):
             if section.startswith("uniload-site ") and section != 'uniload-site "Example"':
                 return True
     config.add_section('uniload-site "Example"')
-    config.set('uniload-site "Example"', "page", "http://www.example.com/site.htm")
-    config.set('uniload-site "Example"', "00regexp", r"exercise/exercise_[0-9]{2}\.pdf")
     config.set('uniload-site "Example"', "00folder", "uebung")
+    config.set('uniload-site "Example"', "00regexp", r"exercise/exercise_[0-9]{2}\.pdf")
+    config.set('uniload-site "Example"', "page", "http://www.example.com/site.htm")
     return False
 
 def getConfigPath(config, succed):
@@ -76,6 +76,8 @@ class File:
         self.newlen = None
         self.newcontent = None
         self.response = None
+        self.isnew = None
+        self.haschanged = None
 
     def update(self, test=False):
         if self.check():
@@ -85,14 +87,21 @@ class File:
         return self.isNew() or self.hasChanged()
 
     def isNew(self):
-        return not os.path.exists(self.local)
+        if self.isnew is None:
+            self.isnew = not os.path.exists(self.local)
+        return self.isnew
 
     def hasChanged(self):
-        newlen = self.getNewLen()
-        if newlen is not None:
-            return self.getOldLen() != newlen
-        else:
-            return False
+        if self.haschanged is None:
+            if self.isNew():
+                self.haschanged = False
+            else:
+                newlen = self.getNewLen()
+                if newlen is not None:
+                    self.haschanged = (self.getOldLen() != newlen)
+                else:
+                    self.haschanged = False
+        return self.haschanged
 
     def getOldLen(self):
         if self.oldlen is None:
