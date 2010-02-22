@@ -17,6 +17,7 @@ def getResponse(url, postData = None):
         return urllib2.urlopen(req)
     except urllib2.HTTPError, e:
         print 'Error Code:', e.code
+        print url
     except ValueError, e:
         print "invalid URL:" + url
     except urllib2.URLError, e:
