@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 import urllib, urllib2, re, cookielib, os, sys, ConfigParser
 from BeautifulSoup import BeautifulSoup
-from fileupdater import getResponse, File
+from fileupdater import safe_getResponse, File
 
 
 def openCourse(config, url, name, overrides=[]):
     print "Kurs:", name
     new_files = []
-    html = getResponse(url).read()
+    html = safe_getResponse(url).read()
     soup = BeautifulSoup(html)
     links = soup.findAll(attrs={'href' : re.compile("resource/view.php")})
     for link in links:
@@ -20,7 +20,7 @@ def openCourse(config, url, name, overrides=[]):
 def download(config, url, name, CourseName, overrides):
     #print url
     new_files = []
-    response = getResponse(url)
+    response = safe_getResponse(url)
     if(response is not None):
         # Direkter Download
         if(response.info().get("Content-Type").find('audio/x-pn-realaudio') == 0):
@@ -77,8 +77,9 @@ def saveFile(config, url, modul, overrides):
     # Find local filepath
     fullFileName = localfile(url, modul, overrides)
 
-    # Download file if it was updated and return
-    return File(url, fullFileName, test=config.getboolean("uniload", "test")).check()
+    # Update file and return if localfile was modified
+    test = config.getboolean("uniload", "test")
+    return File(url, fullFileName, test=test).update()
 
 def localfile(url, modul, overrides):
     newpath = "/".join(url.split("/")[5:])
@@ -89,5 +90,3 @@ def localfile(url, modul, overrides):
                 newpath = newpath.replace(o['remote'] + "/", "")
             return os.path.join(modul, o['folder'], newpath)
     return os.path.join(modul, "stuff", newpath)
-                        
-                        

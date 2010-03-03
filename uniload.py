@@ -3,9 +3,20 @@
 import urllib2, os, re, ConfigParser, sys
 from moodle import openCourse
 from configutil import getIndexedOptions
-from fileupdater import getResponse, File
+from fileupdater import safe_getResponse, File
 
-CONFFILES = [os.path.expanduser(p) for p in ["~/.uniload.conf", "~/.uniloadcred.conf"]]
+CONFFILES = [os.path.expanduser(p) for p in ["~/.uniload.conf",
+                                             "~/.uniloadcred.conf"]]
+
+def main(argv):
+    opt = "".join([o[1:] for o in argv if o.startswith("-")])
+    config = getConfig()
+    options = getOptions()
+    config.set("uniload", "test", str(options.test))
+    if options.test:
+        print "*** TESTMODUS (Keine Filesystemoperationen) ***"
+    uniload(config)
+    moodle(config)
 
 def uniload(config):
     os.chdir(os.path.expanduser(config.get("uniload", "path")))
@@ -24,21 +35,21 @@ def moodle(config):
     casService = "http://moodle.uni-duisburg-essen.de/login/index.php?authCAS=CAS"
         
     # Get token
-    data = getResponse(casUrl).read()
+    data = safe_getResponse(casUrl).read()
     rawstr = '<input type="hidden" name="lt" value="([A-Za-z0-9_\-]*)" />'
     token = re.search(rawstr, data, re.MULTILINE).group(1)
     
     # Login
     postData = {'username': user, 'password': password, 'lt': token, '_eventId': 'submit'}
-    dummy = getResponse(casUrl + '?service=' + casService, postData)
+    dummy = safe_getResponse(casUrl + '?service=' + casService, postData)
     dummy = None
     
     # Use the Service
     url = 'http://moodle.uni-duisburg-essen.de/index.php'
     # verueckt, erst muss ich einen kurs aufrufen um in der hauptseite eingeloggt zu sein
-    dummy = getResponse("http://moodle.uni-duisburg-essen.de/course/view.php?id=2064")
+    dummy = safe_getResponse("http://moodle.uni-duisburg-essen.de/course/view.php?id=2064")
     
-    html = getResponse(url).read()
+    html = safe_getResponse(url).read()
         
     for section in [s for s in config.sections() if s.startswith("moodle-module ")]:
         module = section[15:-1]
@@ -51,27 +62,26 @@ def getConfig():
     succed = config.read(CONFFILES)
     return config
 
+def getOptions(argv):
+    parser = optparse.OptionParser()
+    parser.add_option("-t", "--test", action="store_true", dest="test",
+                      default=False)
+    return parser.parse_args(argv)[0]
+
 def load(config, section):
     module = section[14:-1]
     page = config.get(section, "page")
-    content = urllib2.urlopen(page).read()
+    content = safe_getResponse(page).read()
     for item in getIndexedOptions(config, section, ["regexp", "folder"]):
         localdir = os.path.join(module, item['folder'])
         loaditem(config, localdir, os.path.dirname(page), item['regexp'], content)
 
 def loaditem(config, localdir, webdir, regexp, content):
-    files = [File("/".join([webdir, f]),
-                  "/".join([localdir, os.path.basename(f)]),
-                  test=config.getboolean("uniload", "test"))
-             for f in re.findall(regexp, content)]
+    for f in re.findall(regexp, content)]
+        remote = "/".join([webdir, f])
+        local = "/".join([localdir, os.path.basename(f)])
+        test = config.getboolean("uniload", "test")
+        File(remote, local, test=test).update()
 
 if __name__ == "__main__":
-    opt = "".join([o[1:] for o in sys.argv if o.startswith("-")])
-    config = getConfig()
-    test = True
-    # test = (-1 < opt.find('t'))
-    config.set("uniload", "test", str(test))
-    if test:
-        print "*** TESTMODUS (Keine Filesystemoperationen) ***"
-    uniload(config)
-    moodle(config)
+    main(sys.argv[1:])
