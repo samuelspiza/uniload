@@ -1,22 +1,26 @@
 #!/usr/bin/env python
 
-import urllib2, os, re, ConfigParser, sys
+import os, re, optparse, ConfigParser, sys
 from moodle import openCourse
 from configutil import getIndexedOptions
-from fileupdater import safe_getResponse, File
+from fileupdater import File, absUrl, safe_getResponse
 
-CONFFILES = [os.path.expanduser(p) for p in ["~/.uniload.conf",
-                                             "~/.uniloadcred.conf"]]
+CONFFILES = []
+CONFFILES.append(os.path.expanduser("~/.uniload.conf"))
+CONFFILES.append(os.path.expanduser("~/.uniload-cred.conf"))
+CONFFILES.append(os.path.expanduser("uniload.conf"))
+CONFFILES.append(os.path.expanduser("uniload-cred.conf"))
 
 def main(argv):
-    opt = "".join([o[1:] for o in argv if o.startswith("-")])
-    config = getConfig()
-    options = getOptions()
+    config = ConfigParser.ConfigParser()
+    config.read(CONFFILES)
+    options = getOptions(argv)
     config.set("uniload", "test", str(options.test))
     if options.test:
         print "*** TESTMODUS (Keine Filesystemoperationen) ***"
     uniload(config)
     moodle(config)
+    return 0
 
 def uniload(config):
     os.chdir(os.path.expanduser(config.get("uniload", "path")))
@@ -41,15 +45,14 @@ def moodle(config):
     
     # Login
     postData = {'username': user, 'password': password, 'lt': token, '_eventId': 'submit'}
-    dummy = safe_getResponse(casUrl + '?service=' + casService, postData)
-    dummy = None
+    safe_getResponse(casUrl + '?service=' + casService, postData)
     
     # Use the Service
     url = 'http://moodle.uni-duisburg-essen.de/index.php'
     # verueckt, erst muss ich einen kurs aufrufen um in der hauptseite eingeloggt zu sein
-    dummy = safe_getResponse("http://moodle.uni-duisburg-essen.de/course/view.php?id=2064")
+    safe_getResponse("http://moodle.uni-duisburg-essen.de/course/view.php?id=2064")
     
-    html = safe_getResponse(url).read()
+    safe_getResponse(url).read()
         
     for section in [s for s in config.sections() if s.startswith("moodle-module ")]:
         module = section[15:-1]
@@ -57,15 +60,10 @@ def moodle(config):
         overrides = getIndexedOptions(config, section, ['regexp', 'remote', 'folder'])
         openCourse(config, page, module, overrides)
                 
-def getConfig():
-    config = ConfigParser.ConfigParser()
-    succed = config.read(CONFFILES)
-    return config
-
 def getOptions(argv):
     parser = optparse.OptionParser()
-    parser.add_option("-t", "--test", action="store_true", dest="test",
-                      default=False)
+    parser.add_option("-t", "--test",
+                      action="store_true", dest="test", default=False)
     return parser.parse_args(argv)[0]
 
 def load(config, section):
@@ -74,14 +72,14 @@ def load(config, section):
     content = safe_getResponse(page).read()
     for item in getIndexedOptions(config, section, ["regexp", "folder"]):
         localdir = os.path.join(module, item['folder'])
-        loaditem(config, localdir, os.path.dirname(page), item['regexp'], content)
+        loaditem(config, localdir, page, item['regexp'], content)
 
-def loaditem(config, localdir, webdir, regexp, content):
-    for f in re.findall(regexp, content)]
-        remote = "/".join([webdir, f])
+def loaditem(config, localdir, page, regexp, content):
+    for f in re.findall(regexp, content):
+        remote = absUrl(page, f)
         local = "/".join([localdir, os.path.basename(f)])
         test = config.getboolean("uniload", "test")
         File(remote, local, test=test).update()
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    sys.exit(main(sys.argv[1:]))
