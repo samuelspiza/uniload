@@ -70,14 +70,14 @@ def getOptions(argv):
 def load(config, section):
     module = section[14:-1]
     page = config.get(section, "page")
-    response = safe_getResponse(page)
+    content = safe_getResponse(page).read()
     test = config.getboolean("uniload", "test")
     for item in getIndexedOptions(config, section, ["regexp", "folder"]):
         localdir = os.path.join(module, item['folder'])
-        loaditem(page, item['regexp'], response, localdir, test)
+        loaditem(page, item['regexp'], content, localdir, test)
 
-def loaditem(page, regexp, response, localdir, test):
-    for remote in absFindall(page, regexp, response=response):
+def loaditem(page, regexp, content, localdir, test):
+    for remote in absFindall(page, regexp, content=content):
         local = "/".join([localdir, os.path.basename(remote)])
         File(remote, local, test=test).update()
 
