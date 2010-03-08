@@ -3,7 +3,7 @@
 import os, re, optparse, ConfigParser, sys
 from moodle import openCourse
 from configutil import getIndexedOptions
-from fileupdater import File, absUrl, safe_getResponse
+from fileupdater import File, absFindall, safe_getResponse
 
 CONFFILES = []
 CONFFILES.append(os.path.expanduser("~/.uniload.conf"))
@@ -24,7 +24,8 @@ def main(argv):
 
 def uniload(config):
     os.chdir(os.path.expanduser(config.get("uniload", "path")))
-    for section in [s for s in config.sections() if s.startswith("uniload-site ")]:
+    for section in [s for s in config.sections()
+                    if s.startswith("uniload-site ")]:
         print "Kurs:", section[14:-1]
         load(config, section)
 
@@ -69,16 +70,15 @@ def getOptions(argv):
 def load(config, section):
     module = section[14:-1]
     page = config.get(section, "page")
-    content = safe_getResponse(page).read()
+    response = safe_getResponse(page)
+    test = config.getboolean("uniload", "test")
     for item in getIndexedOptions(config, section, ["regexp", "folder"]):
         localdir = os.path.join(module, item['folder'])
-        loaditem(config, localdir, page, item['regexp'], content)
+        loaditem(page, item['regexp'], response, localdir, test)
 
-def loaditem(config, localdir, page, regexp, content):
-    for f in re.findall(regexp, content):
-        remote = absUrl(page, f)
-        local = "/".join([localdir, os.path.basename(f)])
-        test = config.getboolean("uniload", "test")
+def loaditem(page, regexp, response, localdir, test):
+    for remote in absFindall(page, regexp, response=response):
+        local = "/".join([localdir, os.path.basename(remote)])
         File(remote, local, test=test).update()
 
 if __name__ == "__main__":
