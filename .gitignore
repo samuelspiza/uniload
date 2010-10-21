@@ -1,6 +1,8 @@
 *~
 *.pyc
-/fileupdater/
-/moodlefiles/
-/uniload.conf
-/uniload-cred.conf
+/.settings/
+/src/uniload.conf
+/src/uniload-cred.conf
+/.project
+/.pydevproject
+
