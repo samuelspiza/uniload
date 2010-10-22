@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-#
-# This file is licensed under the Simplified BSD License.
+# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2009-2010, Samuel Spiza
 # All rights reserved.
@@ -34,30 +33,18 @@
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.1"
+__version__ = "0.1a"
 
-import sys
-import os
 import re
+import os
 import optparse
 import ConfigParser
+import sys
 from moodlefiles import moodleLogin, openCourse
 from fileupdater import File, absFindall, safe_getResponse
 
 CONFIG_FILES = [os.path.expanduser("~/.uniload.conf"),"uniload.conf",
                 os.path.expanduser("~/.uniload-cred.conf"),"uniload-cred.conf"]
-
-def main(argv):
-    config = ConfigParser.ConfigParser()
-    config.read(CONFIG_FILES)
-    os.chdir(os.path.expanduser(config.get("uniload", "path")))
-    options = getOptions(argv)
-    config.set("uniload", "test", str(options.test))
-    if options.test:
-        print "*** TESTMODUS (Keine Filesystemoperationen) ***"
-    uniload(config, options.test)
-    moodle(config)
-    return 0
 
 def getOptions(argv):
     parser = optparse.OptionParser()
@@ -103,6 +90,18 @@ def getCascadedOptions(items, regexp="[0-9]{2}"):
                 options[m.group(0)] = {}
             options[m.group(0)][item[0][len(m.group(0)):]] = item[1]
     return options
+
+def main(argv):
+    config = ConfigParser.ConfigParser()
+    config.read(CONFIG_FILES)
+    os.chdir(os.path.expanduser(config.get("uniload", "path")))
+    options = getOptions(argv)
+    config.set("uniload", "test", str(options.test))
+    if options.test:
+        print "*** TESTMODUS (Keine Filesystemoperationen) ***"
+    uniload(config, options.test)
+    moodle(config)
+    return 0
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

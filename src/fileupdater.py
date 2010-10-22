@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+#
 # This is free and unencumbered software released into the public domain.
 # 
 # Anyone is free to copy, modify, publish, use, compile, sell, or
@@ -25,10 +27,15 @@
 #
 """fileupdater - a package for downloading and updating files"""
 
+__author__ = "Samuel Spiza <sam.spiza@gmail.com>"
+__version__ = "0.1"
 __all__ = ["File","Filegroup","absUrl","absFindall","getResponse",
            "safe_getResponse"]
 
-import urllib, urllib2, os, re
+import re
+import os
+import urllib
+import urllib2
 
 opener = urllib2.build_opener(urllib2.HTTPCookieProcessor())
 urllib2.install_opener(opener)

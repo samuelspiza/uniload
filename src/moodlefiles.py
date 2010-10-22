@@ -1,7 +1,4 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# This file is licensed under the Simplified BSD License.
 #
 # Copyright (c) 2009-2010, Samuel Spiza
 # All rights reserved.
@@ -30,15 +27,16 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-"""moodlefiles"""
+"""moodlefiles - a package to access moodle files in python"""
 
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.1"
+__version__ = "0.1a"
 __all__ = ["moodleLogin","openCourse"]
 
-import os, re
+import re
+import os
 from BeautifulSoup import BeautifulSoup
 from fileupdater import safe_getResponse, File
 
@@ -151,4 +149,3 @@ def localfile(url, modul, overrides):
                 newpath = newpath.replace(o['remote'] + "/", "")
             return os.path.join(modul, o['folder'], newpath)
     return os.path.join(modul, "stuff", newpath)
-
