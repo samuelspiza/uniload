@@ -33,7 +33,7 @@
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.1a"
+__version__ = "0.2"
 
 import re
 import os
@@ -69,10 +69,14 @@ def moodle(config):
             page = config.get(section, "page")
             overrides = getCascadedOptions(config.items(section))
             openCourse(config, page, module, overrides)
-                
+
+def removeComments(content):
+    return "".join([a.split("-->")[-1] for a in content.split("<!--")])
+
 def load(module, page, items, test):
     content = safe_getResponse(page).read()
-    for item in items:
+    content = removeComments(content)
+    for item in items.values():
         localdir = os.path.join(module, item['folder'])
         loaditem(page, item['regexp'], content, localdir, test)
 
