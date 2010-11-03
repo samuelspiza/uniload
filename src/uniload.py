@@ -96,14 +96,21 @@ def getCascadedOptions(items, regexp="[0-9]{2}"):
     return options
 
 def main(argv):
+    options = getOptions(argv)
+
     config = ConfigParser.ConfigParser()
     config.read(CONFIG_FILES)
+
     os.chdir(os.path.expanduser(config.get("uniload", "path")))
-    options = getOptions(argv)
-    config.set("uniload", "test", str(options.test))
+
     if options.test:
         print "*** TESTMODUS (Keine Filesystemoperationen) ***"
+
+    # Start update for static websites.
     uniload(config, options.test)
+
+    # Start moodle update.
+    config.set("uniload", "test", str(options.test))
     moodle(config)
     return 0
 
