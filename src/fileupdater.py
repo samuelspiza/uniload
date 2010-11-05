@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 #
 # This is free and unencumbered software released into the public domain.
-# 
+#
 # Anyone is free to copy, modify, publish, use, compile, sell, or
 # distribute this software, either in source code form or as a compiled
 # binary, for any purpose, commercial or non-commercial, and by any
 # means.
-# 
+#
 # In jurisdictions that recognize copyright laws, the author or authors
 # of this software dedicate any and all copyright interest in the
 # software to the public domain. We make this dedication for the benefit
@@ -14,7 +14,7 @@
 # successors. We intend this dedication to be an overt act of
 # relinquishment in perpetuity of all present and future rights to this
 # software under copyright law.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -22,13 +22,13 @@
 # OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
-# 
+#
 # For more information, please refer to <http://unlicense.org/>
 #
 """fileupdater - a package for downloading and updating files"""
 
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
-__version__ = "0.1"
+__version__ = "0.1.1"
 __all__ = ["File","Filegroup","absUrl","absFindall","getResponse",
            "safe_getResponse"]
 
@@ -97,12 +97,21 @@ def absFindall(url, regexp=None, regobj=None, content=None):
         raise ArgumentError, "'regexp' and 'regobj' are both None."
 
 def getResponse(url, postData=None):
+    """Opens an URL with POST data.
+    
+    The POST data must be a dictionary.
+    """
     if(postData is not None):
         postData = urllib.urlencode(postData)
     req = urllib2.Request(url, postData, HEADER)
     return urllib2.urlopen(req)
 
 def safe_getResponse(url, postData=None):
+    """Opens an URL with POST data and catches errors.
+    
+    Returns None if an error occurs. Catches urllib2.HTTPError, ValueError and
+    urllib2.URLError.
+    """
     try:
         return getResponse(url, postData=postData)
     except urllib2.HTTPError, e:
@@ -114,18 +123,28 @@ def safe_getResponse(url, postData=None):
     return None
 
 class File:
+    """Represents a file by connecting a local path and an remote URL.
+    
+    Can be used to check if the local file is synched to the remote one.
+    Provides methods for updating the local file to the remote one if
+    nesseccary or forcing a download.
+    """
+
     def __init__(self, remote, local, response=None, text=False, test=True):
         self.name = os.path.basename(local)
         self.remote = remote
         self.local = local
+        self.text = text
+        self.test = test
+        self.clean()
+
+    def clean(self):
         self.response = None
         self.oldlen = None
         self.newlen = None
         self.newcontent = None
         self.isnew = None
         self.haschanged = None
-        self.text = text
-        self.test = test
 
     def update(self):
         if self.check():

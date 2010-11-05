@@ -28,19 +28,24 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-"""uniload - a bulk downloader for moodle and static web sites"""
+"""Uniload
+
+A bulk downloader for moodle and static web sites
+
+[Uniload](http://github.com/samuelspiza/uniload) is hosted on Github.
+"""
 
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.2"
+__version__ = "0.2.1"
 
 import re
 import os
 import optparse
 import ConfigParser
 import sys
-from moodlefiles import moodleLogin, openCourse
+from moodlefiles import moodleLogin, openModule
 from fileupdater import File, absFindall, safe_getResponse
 
 CONFIG_FILES = [os.path.expanduser("~/.uniload.conf"),"uniload.conf",
@@ -52,23 +57,28 @@ def getOptions(argv):
                       dest="test", action="store_true", default=False)
     return parser.parse_args(argv)[0]
 
-def uniload(config, test):
+def uniload(config, test=False):
     for section in config.sections():
         if section.startswith("uniload-site "):
-            module = section[14:-1]
-            print "Kurs: %s" % module
+            moduleName = section[14:-1]
+            print "Modul: %s" % moduleName
             page = config.get(section, "page")
             items = getCascadedOptions(config.items(section))
-            load(module, page, items, test)
+            load(moduleName, page, items, test)
 
-def moodle(config):
-    moodleLogin(config)
+def moodle(config, test=False):
+    # Benutzerdaten
+    password = config.get("moodle-credentials", "password") # PASSWORD
+    user = config.get("moodle-credentials", "user")
+    moodleLogin(user=user, password=password)
+
     for section in config.sections():
         if section.startswith("moodle-module "):
-            module = section[15:-1]
-            page = config.get(section, "page")
+            moduleName = section[15:-1]
+            print "Modul: %s" % moduleName
+            url = config.get(section, "page")
             overrides = getCascadedOptions(config.items(section))
-            openCourse(config, page, module, overrides)
+            openModule(moduleName, url, overrides, test=test)
 
 def removeComments(content):
     return "".join([a.split("-->")[-1] for a in content.split("<!--")])
@@ -110,8 +120,7 @@ def main(argv):
     uniload(config, options.test)
 
     # Start moodle update.
-    config.set("uniload", "test", str(options.test))
-    moodle(config)
+    moodle(config, options.test)
     return 0
 
 if __name__ == "__main__":

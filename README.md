@@ -1,7 +1,9 @@
-uniload
+Uniload
 =======
 
 A bulk downloader for moodle and static web sites.
+
+[Uniload](http://github.com/samuelspiza/uniload) is hosted on Github.
 
 Attributions
 ------------
