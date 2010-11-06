@@ -38,23 +38,47 @@ A bulk downloader for moodle and static web sites
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 import re
 import os
 import optparse
+import logging
+import logging.handlers
 import ConfigParser
 import sys
 from moodlefiles import moodleLogin, openModule
 from fileupdater import File, absFindall, safe_getResponse
 
+# NullHandler is part of the logging package in Python 3.1
+class NullHandler(logging.Handler):
+    def emit(self, record):
+        pass
+
+logging.getLogger('').addHandler(NullHandler())
+
 CONFIG_FILES = [os.path.expanduser("~/.uniload.conf"),"uniload.conf",
                 os.path.expanduser("~/.uniload-cred.conf"),"uniload-cred.conf"]
 
-def getOptions(argv):
+def getOptions(argv, config):
+    """A method for parsing the argument list."""
+    installDirectory = os.path.dirname(sys.argv[0])
+    section = "uniload"
     parser = optparse.OptionParser()
     parser.add_option("-t", "--test",
                       dest="test", action="store_true", default=False)
+    default = False
+    if config.has_option(section, "log"):
+        default = config.getboolean(section, "log")
+    parser.add_option("-l", "--log",
+                      dest="log", action="store_true", default=default,
+                      help="Write a log.")
+    default = installDirectory + "/uniload.log"
+    if config.has_option(section, "logpath"):
+        default = config.get(section, "logpath")
+    parser.add_option("-m", "--logPath",
+                      dest="logpath", metavar="PATH", default=default,
+                      help="Change the path of the log file.")
     return parser.parse_args(argv)[0]
 
 def uniload(config, test=False):
@@ -106,10 +130,21 @@ def getCascadedOptions(items, regexp="[0-9]{2}"):
     return options
 
 def main(argv):
-    options = getOptions(argv)
-
     config = ConfigParser.ConfigParser()
     config.read(CONFIG_FILES)
+
+    options = getOptions(argv, config)
+
+    if options.log:
+        if options.test:
+            logging.getLogger('').setLevel(logging.DEBUG)
+        else:
+            logging.getLogger('').setLevel(logging.INFO)
+        handler = logging.handlers.RotatingFileHandler(
+                      options.logpath, maxBytes=65000, backupCount=1)
+        format = "%(asctime)s %(name)-25s %(levelname)-8s %(message)s"
+        handler.setFormatter(logging.Formatter(format))
+        logging.getLogger('').addHandler(handler)
 
     os.chdir(os.path.expanduser(config.get("uniload", "path")))
 
