@@ -38,7 +38,7 @@ A bulk downloader for moodle and static web sites
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 
 import re
 import os
@@ -47,7 +47,7 @@ import logging
 import logging.handlers
 import ConfigParser
 import sys
-from moodlefiles import moodleLogin, openModule
+from moodlefiles import Module, moodleLogin
 from fileupdater import File, absFindall, safe_getResponse
 
 # NullHandler is part of the logging package in Python 3.1
@@ -96,13 +96,16 @@ def moodle(config, test=False):
     user = config.get("moodle-credentials", "user")
     moodleLogin(user=user, password=password)
 
+    defaultDir = "."
+    if config.has_option("uniload", "moodleDefaultDir"):
+        defaultDir = config.get("uniload", "moodleDefaultDir")
     for section in config.sections():
         if section.startswith("moodle-module "):
             moduleName = section[15:-1]
             print "Modul: %s" % moduleName
             url = config.get(section, "page")
             overrides = getCascadedOptions(config.items(section))
-            openModule(moduleName, url, overrides, test=test)
+            Module(moduleName, url, overrides, defaultDir, test=test).start()
 
 def removeComments(content):
     return "".join([a.split("-->")[-1] for a in content.split("<!--")])
