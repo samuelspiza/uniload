@@ -38,7 +38,7 @@ A bulk downloader for moodle and static web sites
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.2.3"
+__version__ = "0.2.3a"
 
 import re
 import os
@@ -96,7 +96,7 @@ def moodle(config, test=False):
     user = config.get("moodle-credentials", "user")
     moodleLogin(user=user, password=password)
 
-    defaultDir = "."
+    defaultDir = "stuff"
     if config.has_option("uniload", "moodleDefaultDir"):
         defaultDir = config.get("uniload", "moodleDefaultDir")
     for section in config.sections():
