@@ -33,12 +33,15 @@
 A bulk downloader for moodle and static web sites
 
 [Uniload](http://github.com/samuelspiza/uniload) is hosted on Github.
+
+The [template](http://gist.github.com/704990) contains examples for the
+configuration of Uniload.
 """
 
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.2.3a"
+__version__ = "0.2.4"
 
 import re
 import os
@@ -79,6 +82,13 @@ def getOptions(argv, config):
     parser.add_option("-m", "--logPath",
                       dest="logpath", metavar="PATH", default=default,
                       help="Change the path of the log file.")
+    default = "stuff"
+    if config.has_option(section, "moodleDefaultDir"):
+        default = config.get(section, "moodleDefaultDir")
+    parser.add_option("-d", "--moodleDefaultDir",
+                      dest="moodleDefaultDir", metavar="PATH",
+                      default=default,
+                      help="Change the default firectory for unmatched files.")
     return parser.parse_args(argv)[0]
 
 def uniload(config, test=False):
@@ -90,22 +100,22 @@ def uniload(config, test=False):
             items = getCascadedOptions(config.items(section))
             load(moduleName, page, items, test)
 
-def moodle(config, test=False):
+def moodle(config, defaultDir, test=False):
     # Benutzerdaten
     password = config.get("moodle-credentials", "password") # PASSWORD
     user = config.get("moodle-credentials", "user")
     moodleLogin(user=user, password=password)
 
-    defaultDir = "stuff"
-    if config.has_option("uniload", "moodleDefaultDir"):
-        defaultDir = config.get("uniload", "moodleDefaultDir")
     for section in config.sections():
         if section.startswith("moodle-module "):
             moduleName = section[15:-1]
             print "Modul: %s" % moduleName
             url = config.get(section, "page")
             overrides = getCascadedOptions(config.items(section))
-            Module(moduleName, url, overrides, defaultDir, test=test).start()
+            whitelist = config.has_option(section, "whitelist") and \
+                        config.getboolean(section, "whitelist")
+            Module(moduleName, url, overrides, whitelist, defaultDir,
+                   test=test).start()
 
 def removeComments(content):
     return "".join([a.split("-->")[-1] for a in content.split("<!--")])
@@ -158,7 +168,7 @@ def main(argv):
     uniload(config, options.test)
 
     # Start moodle update.
-    moodle(config, options.test)
+    moodle(config, options.moodleDefaultDir, options.test)
     return 0
 
 if __name__ == "__main__":
