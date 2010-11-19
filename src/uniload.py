@@ -65,8 +65,10 @@ class NullHandler(logging.Handler):
 
 logging.getLogger('').addHandler(NullHandler())
 
-CONFIG_FILES = [os.path.expanduser("~/.uniload.conf"),"uniload.conf",
+CONFIG_FILES = [os.path.expanduser("~/uniload.ini"),
                 os.path.expanduser("~/.uniload-cred.conf"),"uniload-cred.conf"]
+
+CONFIG_FILES2 = [os.path.expanduser("~/.uniload.conf"),"uniload.conf"]
 
 def getOptions(argv, config):
     """A method for parsing the argument list."""
@@ -96,13 +98,13 @@ def getOptions(argv, config):
                       help="Change the default firectory for unmatched files.")
     return parser.parse_args(argv)[0]
 
-def uniload(config, test=False):
-    for section in config.sections():
+def uniload(config2, test=False):
+    for section in config2.sections():
         if section.startswith("uniload-site "):
             moduleName = section[14:-1]
             print "Modul: %s" % moduleName
-            page = config.get(section, "page")
-            items = getCascadedOptions(config.items(section))
+            page = config2.get(section, "page")
+            items = getCascadedOptions(config2.items(section))
             load(moduleName, page, items, test)
 
 def moodleAuth(config):
@@ -145,17 +147,17 @@ def moodleAuth(config):
                 config.write(open(path, 'w'))
                 break
 
-def moodle(config, defaultDir, test=False):
+def moodle(config, config2, defaultDir, test=False):
     moodleAuth(config)
 
-    for section in config.sections():
+    for section in config2.sections():
         if section.startswith("moodle-module "):
             moduleName = section[15:-1]
             print "Modul: %s" % moduleName
-            url = config.get(section, "page")
-            overrides = getCascadedOptions(config.items(section))
-            whitelist = config.has_option(section, "whitelist") and \
-                        config.getboolean(section, "whitelist")
+            url = config2.get(section, "page")
+            overrides = getCascadedOptions(config2.items(section))
+            whitelist = config2.has_option(section, "whitelist") and \
+                        config2.getboolean(section, "whitelist")
             Module(moduleName, url, overrides, whitelist, defaultDir,
                    test=test).start()
 
@@ -189,6 +191,8 @@ def main(argv):
                 'username':'',
                 })
     config.read(CONFIG_FILES)
+    config2 = ConfigParser.ConfigParser()
+    config2.read(CONFIG_FILES2)
 
     options = getOptions(argv, config)
 
@@ -209,10 +213,10 @@ def main(argv):
         print "*** TESTMODUS (Keine Filesystemoperationen) ***"
 
     # Start update for static websites.
-    uniload(config, options.test)
+    uniload(config2, options.test)
 
     # Start moodle update.
-    moodle(config, options.moodleDefaultDir, options.test)
+    moodle(config, config2, options.moodleDefaultDir, options.test)
     return 0
 
 if __name__ == "__main__":
