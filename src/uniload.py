@@ -52,6 +52,11 @@ import ConfigParser
 import sys
 from moodlefiles import Module, moodleLogin
 from fileupdater import File, absFindall, safe_getResponse
+import getpass
+try:
+    import keyring
+except ImportError:
+    keyring = None
 
 # NullHandler is part of the logging package in Python 3.1
 class NullHandler(logging.Handler):
@@ -100,11 +105,48 @@ def uniload(config, test=False):
             items = getCascadedOptions(config.items(section))
             load(moduleName, page, items, test)
 
-def moodle(config, defaultDir, test=False):
+def moodleAuth(config):
     # Benutzerdaten
-    password = config.get("moodle-credentials", "password") # PASSWORD
-    user = config.get("moodle-credentials", "user")
-    moodleLogin(user=user, password=password)
+    if not config.has_section("moodle-credentials"):
+        config.add_section("moodle-credentials")
+
+    username = config.get("moodle-credentials", "username")
+    if keyring is None:
+        password = None
+        if config.has_option("moodle-credentials", "password"):
+            password = config.get("moodle-credentials", "password")
+    else:
+        password = keyring.get_password('uniload', username)
+
+    if password == None or not moodleLogin(username, password):
+
+        for i in range(3):
+            username = raw_input("ZIM Kennung:\n")
+            password = getpass.getpass("Password:\n")
+
+            if moodleLogin(username, password):
+                break
+            else:
+                print "Authorization failed."
+                if i == 2:
+                    sys.exit(1)
+
+        # store the password
+        if keyring is None:
+            config.set("moodle-credentials", "password", password)
+        else:
+            keyring.set_password("uniload", username, password)
+
+        # store the username
+        config.set("moodle-credentials", "username", username)
+
+        for path in reversed(CONFIG_FILES):
+            if os.path.exists(path):
+                config.write(open(path, 'w'))
+                break
+
+def moodle(config, defaultDir, test=False):
+    moodleAuth(config)
 
     for section in config.sections():
         if section.startswith("moodle-module "):
@@ -143,7 +185,9 @@ def getCascadedOptions(items, regexp="[0-9]{2}"):
     return options
 
 def main(argv):
-    config = ConfigParser.ConfigParser()
+    config = ConfigParser.SafeConfigParser({
+                'username':'',
+                })
     config.read(CONFIG_FILES)
 
     options = getOptions(argv, config)
