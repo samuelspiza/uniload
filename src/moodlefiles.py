@@ -37,7 +37,7 @@ Downloads and updates files from the Moodle platform.
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 __all__ = ["moodleLogin","openModule"]
 
 import re

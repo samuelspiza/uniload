@@ -41,7 +41,7 @@ configuration of Uniload.
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.2.4"
+__version__ = "0.3"
 
 import re
 import os
@@ -107,6 +107,40 @@ def uniload(config2, test=False):
             items = getCascadedOptions(config2.items(section))
             load(moduleName, page, items, test)
 
+def writeWithComments(config, path):
+    comments = {}
+    last = "start"
+    ci = ["#", ";"] # Comment indicators
+
+    # Retrieve all comment lines from the old config file. Sorts all comment
+    # lines in a dict to the nearest section above them.
+    with open(path, 'r') as file:
+        for line in file.readlines():
+            if 0 < len(line.strip()) and line.strip()[0] == "[":
+                last = line.strip()
+            elif 0 < len(line) and line[0] in ci:
+                if last not in comments:
+                    comments[last] = dict([(i, []) for i in ci])
+                comments[last][line[0]].append(line.strip())
+
+    # Writes the current config.
+    config.write(open(path, 'w'))
+
+    # Read the new config file and inserts the comment lines under their
+    # section.
+    content = []
+    for i in ci:
+        content.extend(comments["start"][i])
+    with open(path, 'r') as file:
+        for line in file.readlines():
+            content.append(line.strip())
+            if 0 < len(line) and line[0] == "[" and line.strip() in comments:
+                for i in ci:
+                    content.extend(comments[line.strip()][i])
+
+    with open(path, 'w') as file:
+        file.write("\n".join(content) + "\n")
+
 def moodleAuth(config):
     # Benutzerdaten
     if not config.has_section("moodle-credentials"):
@@ -133,18 +167,18 @@ def moodleAuth(config):
                 if i == 2:
                     sys.exit(1)
 
-        # store the password
+        # Store the password.
         if keyring is None:
             config.set("moodle-credentials", "password", password)
         else:
             keyring.set_password("uniload", username, password)
 
-        # store the username
+        # Store the username.
         config.set("moodle-credentials", "username", username)
 
         for path in reversed(CONFIG_FILES):
             if os.path.exists(path):
-                config.write(open(path, 'w'))
+                writeWithComments(config, path)
                 break
 
 def moodle(config, config2, defaultDir, test=False):
