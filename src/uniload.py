@@ -41,7 +41,7 @@ configuration of Uniload.
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.3"
+__version__ = "0.3a"
 
 import re
 import os
@@ -70,33 +70,34 @@ CONFIG_FILES = [os.path.expanduser("~/uniload.ini"),
 
 CONFIG_FILES2 = [os.path.expanduser("~/.uniload.conf"),"uniload.conf"]
 
-def getOptions(argv, config):
+def getOptions(argv):
     """A method for parsing the argument list."""
     installDirectory = os.path.dirname(sys.argv[0])
+    config = ConfigParser.SafeConfigParser({
+                'username': "",
+                'log': False,
+                'log.path': installDirectory + "/uniload.log",
+                'moodle.defaultdir': "stuff"
+                })
+    config.read(CONFIG_FILES)
     section = "uniload"
     parser = optparse.OptionParser()
     parser.add_option("-t", "--test",
                       dest="test", action="store_true", default=False)
-    default = False
-    if config.has_option(section, "log"):
-        default = config.getboolean(section, "log")
+    default = config.getboolean(section, "log")
     parser.add_option("-l", "--log",
                       dest="log", action="store_true", default=default,
                       help="Write a log.")
-    default = installDirectory + "/uniload.log"
-    if config.has_option(section, "logpath"):
-        default = config.get(section, "logpath")
+    default = config.get(section, "log.path")
     parser.add_option("-m", "--logPath",
                       dest="logpath", metavar="PATH", default=default,
                       help="Change the path of the log file.")
-    default = "stuff"
-    if config.has_option(section, "moodleDefaultDir"):
-        default = config.get(section, "moodleDefaultDir")
+    default = config.get(section, "moodle.defaultdir")
     parser.add_option("-d", "--moodleDefaultDir",
                       dest="moodleDefaultDir", metavar="PATH",
                       default=default,
-                      help="Change the default firectory for unmatched files.")
-    return parser.parse_args(argv)[0]
+                      help="Change the default directory for unmatched files.")
+    return parser.parse_args(argv)[0], config
 
 def uniload(config2, test=False):
     for section in config2.sections():
@@ -221,14 +222,12 @@ def getCascadedOptions(items, regexp="[0-9]{2}"):
     return options
 
 def main(argv):
-    config = ConfigParser.SafeConfigParser({
-                'username':'',
-                })
-    config.read(CONFIG_FILES)
+    # An OptionParser and a ConfigParser object
+    options, config = getOptions(argv)
+
+    # A ConfigParser object for the sites and modules.
     config2 = ConfigParser.ConfigParser()
     config2.read(CONFIG_FILES2)
-
-    options = getOptions(argv, config)
 
     if options.log:
         if options.test:
