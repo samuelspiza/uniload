@@ -41,7 +41,7 @@ configuration of Uniload.
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.3a"
+__version__ = "0.3b"
 
 import re
 import os
@@ -103,7 +103,7 @@ def uniload(config2, test=False):
     for section in config2.sections():
         if section.startswith("uniload-site "):
             moduleName = section[14:-1]
-            print "Modul: %s" % moduleName
+            print "# Modul: %s #" % moduleName
             page = config2.get(section, "page")
             items = getCascadedOptions(config2.items(section))
             load(moduleName, page, items, test)
@@ -188,7 +188,7 @@ def moodle(config, config2, defaultDir, test=False):
     for section in config2.sections():
         if section.startswith("moodle-module "):
             moduleName = section[15:-1]
-            print "Modul: %s" % moduleName
+            print "# Modul: %s #" % moduleName
             url = config2.get(section, "page")
             overrides = getCascadedOptions(config2.items(section))
             whitelist = config2.has_option(section, "whitelist") and \
