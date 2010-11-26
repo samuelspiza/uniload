@@ -65,10 +65,12 @@ class NullHandler(logging.Handler):
 
 logging.getLogger('').addHandler(NullHandler())
 
-CONFIG_FILES = [os.path.expanduser("~/uniload.ini"),
-                os.path.expanduser("~/.uniload-cred.conf"),"uniload-cred.conf"]
+CONFIG_FILES = [os.path.expanduser("~/uniload-cred.ini"),
+                os.path.expanduser("~/.uniload-cred.conf"),
+                "uniload-cred.ini","uniload-cred.conf"]
 
-CONFIG_FILES2 = [os.path.expanduser("~/.uniload.conf"),"uniload.conf"]
+CONFIG_FILES2 = [os.path.expanduser("~/.uniload.conf"),"uniload.conf",
+                 os.path.expanduser("~/uniload.ini"),"uniload.ini"]
 
 def getOptions(argv):
     """A method for parsing the argument list."""
