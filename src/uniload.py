@@ -41,7 +41,7 @@ configuration of Uniload.
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.3b"
+__version__ = "0.3.1"
 
 import re
 import os
@@ -76,11 +76,11 @@ def getOptions(argv):
     """A method for parsing the argument list."""
     installDirectory = os.path.dirname(sys.argv[0])
     config = ConfigParser.SafeConfigParser({
-                'username': "",
-                'log': False,
-                'log.path': installDirectory + "/uniload.log",
-                'moodle.defaultdir': "stuff"
-                })
+                 'username': "",
+                 'log': False,
+                 'log.path': installDirectory + "/uniload.log",
+                 'moodle.defaultdir': "stuff"
+                 })
     config.read(CONFIG_FILES)
     section = "uniload"
     parser = optparse.OptionParser()
@@ -108,7 +108,7 @@ def uniload(config2, test=False):
             print "# Modul: %s #" % moduleName
             page = config2.get(section, "page")
             items = getCascadedOptions(config2.items(section))
-            load(moduleName, page, items, test)
+            Static(moduleName, page, items, test).start()
 
 def writeWithComments(config, path):
     comments = {}
@@ -201,18 +201,6 @@ def moodle(config, config2, defaultDir, test=False):
 def removeComments(content):
     return "".join([a.split("-->")[-1] for a in content.split("<!--")])
 
-def load(module, page, items, test):
-    content = safe_getResponse(page).read()
-    content = removeComments(content)
-    for item in items.values():
-        localdir = os.path.join(module, item['folder'])
-        loaditem(page, item['regexp'], content, localdir, test)
-
-def loaditem(page, regexp, content, localdir, test):
-    for remote in absFindall(page, regexp, content=content):
-        local = "/".join([localdir, os.path.basename(remote)])
-        File(remote, local, test=test).update()
-
 def getCascadedOptions(items, regexp="[0-9]{2}"):
     options = {}
     for item in items:
@@ -222,6 +210,25 @@ def getCascadedOptions(items, regexp="[0-9]{2}"):
                 options[m.group(0)] = {}
             options[m.group(0)][item[0][len(m.group(0)):]] = item[1]
     return options
+
+class Static:
+    def __init__(self, module, page, items, test):
+        self.module = module
+        self.page   = page
+        self.items  = items
+        self.test   = test
+
+    def start(self):
+        content = safe_getResponse(self.page).read()
+        content = removeComments(content)
+        for item in self.items.values():
+            localdir = os.path.join(self.module, item['folder'])
+            self.loaditem(item['regexp'], content, localdir)
+
+    def loaditem(self, regexp, content, localdir):
+        for remote in absFindall(self.page, regexp, content=content):
+            local = "/".join([localdir, os.path.basename(remote)])
+            File(remote, local, test=self.test).update()
 
 def main(argv):
     # An OptionParser and a ConfigParser object
