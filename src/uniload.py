@@ -41,7 +41,7 @@ configuration of Uniload.
 __author__ = "Samuel Spiza <sam.spiza@gmail.com>"
 __copyright__ = "Copyright (c) 2009-2010, Samuel Spiza"
 __license__ = "Simplified BSD License"
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 import re
 import os
@@ -111,9 +111,9 @@ def uniload(config2, test=False):
             Static(moduleName, page, items, test).start()
 
 def writeWithComments(config, path):
-    comments = {}
-    last = "start"
     ci = ["#", ";"] # Comment indicators
+    last = "start"
+    comments = {last: dict([(i, []) for i in ci])}
 
     # Retrieve all comment lines from the old config file. Sorts all comment
     # lines in a dict to the nearest section above them.
@@ -121,9 +121,8 @@ def writeWithComments(config, path):
         for line in file.readlines():
             if 0 < len(line.strip()) and line.strip()[0] == "[":
                 last = line.strip()
+                comments[last] = dict([(i, []) for i in ci])
             elif 0 < len(line) and line[0] in ci:
-                if last not in comments:
-                    comments[last] = dict([(i, []) for i in ci])
                 comments[last][line[0]].append(line.strip())
 
     # Writes the current config.
